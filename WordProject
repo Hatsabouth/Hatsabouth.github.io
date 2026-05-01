@@ -1,0 +1,147 @@
+//HTML File
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Speech Interface</title>
+</head>
+<body>
+
+    
+    <div class="section">
+        <h3>Word Section</h3>
+        <div class="input-group">
+            <select id="wordDropdown">
+                <option value="Hello">Hello</option>
+                <option value="World">World</option>
+                <option value="JavaScript">JavaScript</option>
+                <option value="Development">Development</option>
+            </select>
+            <button type="button" onclick="speak('wordDropdown')">Speak Word</button>
+        </div>
+    </div>
+
+   
+    <div class="section">
+        <h3>Sentence Section</h3>
+        <div class="input-group">
+            <input type="text" id="sentenceBox" value="The quick brown fox jumps over the lazy dog." readonly>
+            <button type="button" onclick="speak('sentenceBox')">Speak Sentence</button>
+        </div>
+    </div>
+
+    <select id="wordDropdown" onchange="updateSentence()">
+    <option value="">--Select a Word--</option> 
+    <option value="Creativity" data-sentence="Creativity is intelligence having fun.">Creativity</option>
+    <option value="Focus" data-sentence="Focus on being productive instead of busy.">Focus</option>
+    <option value="Success" data-sentence="Success is not final; failure is not fatal.">Success</option>
+</select>
+
+<input type="text" id="sentenceBox" placeholder="Sentence will appear here..." readonly>
+<button type="button" id="btnSentence">Speak Sentence</button>
+
+
+<select id="citySelect" onchange="syncWeather()">
+  <option value="">-- Choose a City --</option>
+  <option value="miami">New York</option>
+  <option value="seattle">Seattle</option>
+  <option value="denver">Atlanta</option>
+</select>
+
+//CSS FIle
+body {
+    font-family: sans-serif;
+    padding: 20px;
+    line-height: 1.6;
+}
+
+.section {
+    margin-bottom: 30px;
+}
+
+.input-group {
+    display: flex;
+    gap: 10px; /* Space between the input and the button */
+    align-items: center;
+}
+
+select, input[readonly] {
+    padding: 8px;
+    font-size: 16px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    width: 250px;
+}
+
+input[readonly] {
+    background-color: #f9f9f9;
+    cursor: default;
+}
+
+button {
+    padding: 8px 16px;
+    font-size: 16px;
+    background-color: #007bff;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+button:hover {
+    background-color: #0056b3;
+}
+
+//Java file
+function speak(elementId) {
+    const element = document.getElementById(elementId);
+    const text = element.value;
+    
+    if (text) {
+        const utterance = new SpeechSynthesisUtterance(text);
+        window.speechSynthesis.speak(utterance);
+    }
+
+    
+function speak(textToSay) { 
+    const message = new SpeechSynthesisUtterance(textToSay); 
+    message.pitch = 1.2; 
+    message.rate = 1.0; 
+    window.speechSynthesis.speak(message);
+}
+
+
+function updateSentence() {
+    const menu = document.getElementById('wordDropdown');
+    const display = document.getElementById('sentenceBox');
+
+    //Checking if the index is greater than 0
+    if (menu.selectedIndex > 0) {
+        
+        const selectedOption = menu.options[menu.selectedIndex];
+        
+        const hiddenSentence = selectedOption.dataset.sentence;
+
+        
+        display.value = hiddenSentence;
+    } else {
+       
+        display.value = "";
+    }
+}
+
+
+document.getElementById('btnSentence').onclick = function() {
+    const sentence = document.getElementById('sentenceBox').value;
+    
+    if (sentence !== "") {
+        speak(sentence);
+    } else {
+        alert("Please select a word first!");
+    }
+}
+}
+<input type="text" id="weatherDisplay" readonly placeholder="Weather will appear here...">
+</body>
+</html>
