@@ -1,0 +1,447 @@
+//html file
+<!DOCTYPE html
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MindSpace - Meditation Timer</title>
+  <!-- Bootstrap 5 CSS -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <!-- PWA Manifest -->
+  <link rel="manifest" href="manifest.json">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body class="bg-light">
+
+  <!-- Navigation Bar -->
+  <nav class="navbar navbar-expand-lg navbar-dark bg-dark shadow-sm">
+    <div class="container">
+      <a class="navbar-brand d-flex align-items-center" href="#">
+        <span class="fs-4 fw-bold text-success">🧘 MindSpace</span>
+      </a>
+      <button class="navbar-toggler" type="text/custom" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+      <div class="collapse navbar-collapse" id="navbarNav">
+        <ul class="navbar-nav ms-auto align-items-center">
+          <!-- Dynamically populated menu -->
+          <li class="nav-item dropdown">
+            <a class="nav-link dropdown-toggle text-white btn btn-outline-secondary me-2 px-3" href="#" id="navbarDropdown" role="button" data-bs-toggle="dropdown">
+              Select Session
+            </a>
+            <ul class="dropdown-menu dropdown-menu-end shadow" id="topics-menu">
+              <li><span class="dropdown-item-text text-muted">Loading sessions...</span></li>
+            </ul>
+          </li>
+          <!-- PWA Install Button -->
+          <li class="nav-item mt-2 mt-lg-0">
+            <button id="install-btn" class="btn btn-success font-weight-bold" style="display: none;">📥 Install App</button>
+          </li>
+        </ul>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Main Timer App Content -->
+  <main class="container my-5">
+    <div class="row justify-content-center">
+      <div class="col-md-8 col-lg-6">
+        <div class="card shadow border-0 rounded-4 overflow-hidden text-center">
+          
+          <!-- Session Dynamic Image -->
+          <div class="bg-secondary position-relative" style="height: 200px; max-height: 200px;">
+            <div id="session-bg" class="w-100 h-100" style="background: linear-gradient(135deg, #a3bded 0%, #f43f5e 100%); transition: background 0.5s ease;"></div>
+            <h2 id="session-title" class="position-absolute bottom-0 start-0 w-100 text-white p-3 mb-0 bg-dark bg-opacity-50">Welcome to MindSpace</h2>
+          </div>
+
+          <div class="card-body p-4">
+            <p id="session-desc" class="text-muted mb-4">Select a guided block from the menu to begin your journey to calm.</p>
+            
+            <!-- Countdown Timer Display -->
+            <div class="display-1 fw-bold my-4 text-dark font-monospace" id="timer-display">00:00</div>
+
+            <!-- Custom Playback Controls -->
+            <div class="d-flex justify-content-center gap-3 my-4">
+              <button id="start-pause-btn" class="btn btn-primary btn-lg rounded-pill px-4" disabled>Play</button>
+              <button id="reset-btn" class="btn btn-outline-danger btn-lg rounded-pill px-4" disabled>Reset</button>
+            </div>
+
+            <hr>
+
+            <!-- Dynamic Session Instructions Instructions -->
+            <div class="text-start mt-4">
+              <h5 class="fw-bold">Instructions:</h5>
+              <ol id="instructions-list" class="text-muted">
+                <li>Pick a session from the top dropdown menu.</li>
+                <li>Ensure your sound is turned on.</li>
+                <li>Press Play, close your eyes, and breathe naturally.</li>
+              </ol>
+            </div>
+
+            <!-- Hidden Audio Element -->
+            <audio id="audio-player" loop></audio>
+
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- Bootstrap 5 JavaScript Bundle -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  <!-- Application Core Script -->
+  <script src="app.js"></script>
+</body>
+</html>
+
+
+//buttons usage
+//buttons.js
+// 1. Core State Variables
+let timerInterval = null;  // Stores the heartbeat interval ID
+let secondsLeft = 300;     // 5 minutes in seconds (default fallback)
+let isPlaying = false;     // Tracks if the timer is actively running
+let originalDuration = 300; // Keeps track of where to reset to
+
+// 2. DOM Element References
+const timerDisplay = document.getElementById('timer-display');
+const startPauseBtn = document.getElementById('start-pause-btn');
+const resetBtn = document.getElementById('reset-btn');
+const audioPlayer = document.getElementById('audio-player');
+
+// 3. Helper Function: Update the Text on the Screen
+function updateTimerDisplay() {
+  const minutes = Math.floor(secondsLeft / 60).toString().padStart(2, '0');
+  const seconds = (secondsLeft % 60).toString().padStart(2, '0');
+  timerDisplay.textContent = `${minutes}:${seconds}`;
+}
+
+// 4. Action: Start the Countdown
+function startTimer() {
+  isPlaying = true;
+  startPauseBtn.textContent = 'Pause';
+  startPauseBtn.className = 'btn btn-warning btn-lg rounded-pill px-4'; // Change Bootstrap color to yellow
+  
+  // Start background audio if a track is loaded
+  if (audioPlayer.src) {
+    audioPlayer.play().catch(err => console.log("Audio waiting for user gesture:", err));
+  }
+
+  // Create the 1-second heartbeat loop
+  timerInterval = setInterval(() => {
+    if (secondsLeft > 0) {
+      secondsLeft--;
+      updateTimerDisplay();
+    } else {
+      // Time ran out!
+      completeSession();
+    }
+  }, 1000);
+}
+
+// 5. Action: Pause the Countdown
+function pauseTimer() {
+  isPlaying = false;
+  startPauseBtn.textContent = 'Play';
+  startPauseBtn.className = 'btn btn-primary btn-lg rounded-pill px-4'; // Change Bootstrap color back to blue
+  
+  // Pause the music
+  audioPlayer.pause();
+  
+  // Stop the heartbeat loop
+  clearInterval(timerInterval);
+}
+
+// 6. Action: Reset Everything
+function resetTimer() {
+  // Always pause first to stop the interval loop
+  pauseTimer();
+  
+  // Restore original time
+  secondsLeft = originalDuration;
+  updateTimerDisplay();
+}
+
+// 7. Action: Timer Completion
+function completeSession() {
+  pauseTimer();
+  alert("✨ Session finished! Take a deep breath and return smoothly to your day.");
+  resetTimer();
+}
+
+// ==========================================
+// 8. Event Listeners (Connecting Code to Buttons)
+// ==========================================
+
+// Handle clicks on the Start/Pause button
+startPauseBtn.addEventListener('click', () => {
+  if (isPlaying) {
+    pauseTimer();
+  } else {
+    startTimer();
+  }
+});
+
+// Handle clicks on the Reset button
+resetBtn.addEventListener('click', resetTimer);
+
+function loadSession(selectedTopic) {
+  // Stop any timer that might currently be running
+  resetTimer(); 
+
+  // Update tracking variables with the new JSON data
+  originalDuration = selectedTopic.durationSeconds;
+  secondsLeft = selectedTopic.durationSeconds;
+  
+  // Update UI and audio target
+  audioPlayer.src = selectedTopic.audio;
+  updateTimerDisplay();
+
+  // Enable buttons since a valid session is now loaded
+  startPauseBtn.disabled = false;
+  resetBtn.disabled = false;
+}
+
+//style.css
+body {
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  background-color: #f4f7f6 !important;
+}
+
+.card {
+  transition: transform 0.3s ease;
+}
+
+#timer-display {
+  font-size: 5.5rem;
+  letter-spacing: -2px;
+}
+
+/* Custom progress transition colors */
+.session-active {
+  animation: pulse 4s infinite ease-in-out;
+}
+
+@keyframes pulse {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.01); }
+  100% { transform: scale(1); }
+}
+
+//apps.css
+/ Global State Variables
+let appData = null;
+let currentSession = null;
+let timerInterval = null;
+let secondsLeft = 0;
+let isPlaying = false;
+
+// DOM Elements
+const menuContainer = document.getElementById('topics-menu');
+const sessionTitle = document.getElementById('session-title');
+const sessionDesc = document.getElementById('session-desc');
+const timerDisplay = document.getElementById('timer-display');
+const startPauseBtn = document.getElementById('start-pause-btn');
+const resetBtn = document.getElementById('reset-btn');
+const instructionsList = document.getElementById('instructions-list');
+const audioPlayer = document.getElementById('audio-player');
+const installBtn = document.getElementById('install-btn');
+
+// 1. REGISTER SERVICE WORKER
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('sw.js')
+      .then(reg => console.log('Service Worker Registered Successfully', reg.scope))
+      .catch(err => console.error('Service Worker Registration Failed', err));
+  });
+}
+
+// 2. CAPTURE PWA INSTALLATION EVENT
+let deferredPrompt;
+window.addEventListener('beforeinstallprompt', (e) => {
+  e.preventDefault();
+  deferredPrompt = e;
+  installBtn.style.display = 'block'; // Make button visible
+});
+
+installBtn.addEventListener('click', async () => {
+  if (deferredPrompt) {
+    deferredPrompt.prompt();
+    const { outcome } = await deferredPrompt.userChoice;
+    if (outcome === 'accepted') {
+      installBtn.style.display = 'none';
+    }
+    deferredPrompt = null;
+  }
+});
+
+// 3. FETCH DATA AND INITIALIZE APP
+document.addEventListener('DOMContentLoaded', () => {
+  fetch('data/sessions.json')
+    .then(res => res.json())
+    .then(data => {
+      appData = data;
+      buildDynamicMenu(data.topics);
+    })
+    .catch(err => {
+      console.error("Error loading JSON data: ", err);
+      menuContainer.innerHTML = '<li><span class="dropdown-item-text text-danger">Failed to load sessions.</span></li>';
+    });
+});
+
+function buildDynamicMenu(topics) {
+  menuContainer.innerHTML = ''; // Reset UI
+  topics.forEach(topic => {
+    const li = document.createElement('li');
+    const a = document.createElement('a');
+    a.classList.add('dropdown-item');
+    a.href = '#';
+    a.textContent = `${topic.title} (${Math.floor(topic.durationSeconds / 60)} min)`;
+    a.addEventListener('click', () => loadSession(topic.id));
+    li.appendChild(a);
+    menuContainer.appendChild(li);
+  });
+}
+
+// 4. SESSION INTERACTIVE MECHANICS
+function loadSession(id) {
+  resetTimer();
+  currentSession = appData.topics.find(t => t.id === id);
+  
+  if (!currentSession) return;
+
+  // Setup Metadata UI
+  sessionTitle.textContent = currentSession.title;
+  sessionDesc.textContent = currentSession.description;
+  secondsLeft = currentSession.durationSeconds;
+  updateTimerDisplay();
+
+  // Setup Audio Track Target
+  audioPlayer.src = currentSession.audio;
+  audioPlayer.load();
+
+  // Render Array of Instructions
+  instructionsList.innerHTML = '';
+  currentSession.instructions.forEach(step => {
+    const li = document.createElement('li');
+    li.textContent = step;
+    instructionsList.appendChild(li);
+  });
+
+  // Enable Interactive Triggers
+  startPauseBtn.disabled = false;
+  resetBtn.disabled = false;
+}
+
+function updateTimerDisplay() {
+  const mins = Math.floor(secondsLeft / 60).toString().padStart(2, '0');
+  const secs = (secondsLeft % 60).toString().padStart(2, '0');
+  timerDisplay.textContent = `${mins}:${secs}`;
+}
+
+// 5. TIMER STATE CONTROLLER
+startPauseBtn.addEventListener('click', () => {
+  if (isPlaying) {
+    pauseTimer();
+  } else {
+    startTimer();
+  }
+});
+
+resetBtn.addEventListener('click', resetTimer);
+function startTimer() {
+  isPlaying = true;
+  startPauseBtn.textContent = 'Pause';
+  startPauseBtn.classList.replace('btn-primary', 'btn-warning');
+  audioPlayer.play().catch(e => console.log("Audio playback required user interaction step first: ", e));
+  
+  timerInterval = setInterval(() => {
+    if (secondsLeft > 0) {
+      secondsLeft--;
+      updateTimerDisplay();
+    } else {
+      completeSession();
+    }
+  }, 1000);
+}
+
+function pauseTimer() {
+  isPlaying = false;
+  startPauseBtn.textContent = 'Play';
+  startPauseBtn.classList.replace('btn-warning', 'btn-primary');
+  audioPlayer.pause();
+  clearInterval(timerInterval);
+}
+
+function resetTimer() {
+  pauseTimer();
+  if (currentSession) {
+    secondsLeft = currentSession.durationSeconds;
+    updateTimerDisplay();
+  } else {
+    secondsLeft = 0;
+    timerDisplay.textContent = "00:00";
+  }
+}
+
+function completeSession() {
+  pauseTimer();
+  audioPlayer.pause();
+  alert("✨ Session Complete. Go forth with absolute clarity.");
+  resetTimer();
+}
+
+//manifest.json
+{
+  "short_name": "MindSpace",
+  "name": "MindSpace Meditation Timer",
+  "icons": [
+    {
+      "src": "assets/icons/icon-192.png",
+      "type": "image/png",
+      "sizes": "192x192"
+    },
+    {
+      "src": "assets/icons/icon-512.png",
+      "type": "image/png",
+      "sizes": "512x512"
+    }
+  ],
+  "start_url": "./index.html",
+  "background_color": "#f4f7f6",
+  "theme_color": "#198754",
+  "display": "standalone",
+  "orientation": "portrait"
+}
+
+//sw.js
+const CACHE_NAME = 'mindspace-v1';
+const ASSETS_TO_CACHE = [
+  './',
+  './index.html',
+  './style.css',
+  './app.js',
+  './manifest.json',
+  './data/sessions.json',
+  'https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css',
+  'https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js'
+];
+
+// Cache all assets on Install step
+self.addEventListener('install', (event) => {
+  event.waitUntil(
+    caches.open(CACHE_NAME).then((cache) => {
+      return cache.addAll(ASSETS_TO_CACHE);
+    })
+  );
+});
+
+// Cache Interceptor to run app offline
+self.addEventListener('fetch', (event) => {
+  event.respondWith(
+    caches.match(event.request).then((cachedResponse) => {
+      return cachedResponse || fetch(event.request);
+    })
+  );
+});
+
